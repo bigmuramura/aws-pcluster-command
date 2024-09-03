@@ -36,7 +36,8 @@ jobs:
 
     - name: Set repository based on event
       run: |
-        if [[ ${{ github.event_name }} == 'pull_request' && ${{ github.base_ref }} == 'main' ]]; then
+        if [[ "${{ github.base_ref }}" == 'main' ]]; then
+
           echo "REPOSITORY=${{ env.PROD_REPOSITORY }}" >> $GITHUB_ENV
         else
           echo "REPOSITORY=${{ env.DEV_REPOSITORY }}" >> $GITHUB_ENV
