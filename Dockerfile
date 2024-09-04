@@ -13,4 +13,4 @@ RUN apt-get update && apt-get install -y \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install aws-parallelcluster==3.10.1 \
-	pip3 install awscliv2
+	&& pip3 install awscliv2
