@@ -10,12 +10,13 @@ on:
 
 env:
   AWS_REGION: ap-northeast-1
-  PROD_REPOSITORY: dev-aws-pcluster-command
-  DEV_REPOSITORY: prod-aws-pcluster-command
+  DEV_REPOSITORY: dev-aws-pcluster-command
+  PROD_REPOSITORY: prod-aws-pcluster-command
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       id-token: write
       contents: read
@@ -59,17 +60,14 @@ jobs:
       with:
         images: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}
         tags: |
-          type=sha,format=short,suffix=-${{ matrix.platform }}
-          type=raw,value=latest-${{ matrix.platform }}
+          type=sha,format=short,prefix=,suffix=-${{ matrix.platform }}
 
     - name: Build and Push
       uses: docker/build-push-action@v5
       with:
         context: .
         platforms: ${{ matrix.platform }}
-        push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
 
     - name: Image digest
       run: echo ${{ steps.build-and-push.outputs.digest }}
