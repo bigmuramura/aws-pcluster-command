@@ -2,9 +2,12 @@ name: Docker Build and Push
 
 on:
   push:
+    branches:
+      - '**'
     branches-ignore:
       - main
   pull_request:
+    types: [closed]
     branches:
       - main
 
@@ -70,6 +73,3 @@ jobs:
         platforms: ${{ matrix.platform }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-
-    - name: Image digest
-      run: echo ${{ steps.build-and-push.outputs.digest }}
