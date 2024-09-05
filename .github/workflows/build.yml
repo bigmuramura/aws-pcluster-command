@@ -1,0 +1,75 @@
+name: Docker Build and Push
+
+on:
+  push:
+
+env:
+  AWS_REGION: ap-northeast-1
+  DEV_REPOSITORY: dev-aws-pcluster-command
+  PROD_REPOSITORY: prod-aws-pcluster-command
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Set repository based on event
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "REPOSITORY=${{ env.PROD_REPOSITORY }}" >> $GITHUB_ENV
+        else
+          echo "REPOSITORY=${{ env.DEV_REPOSITORY }}" >> $GITHUB_ENV
+        fi
+
+    - name: Extract ParallelCluster version
+      id: extract_version
+      run: |
+        PARALLELCLUSTER_VERSION=$(grep 'ARG PARALLELCLUSTER_VERSION=' Dockerfile | cut -d'=' -f2)
+        echo "version=${PARALLELCLUSTER_VERSION}" >> $GITHUB_OUTPUT
+
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}
+        tags: |
+          type=sha,format=short,prefix=v${{ steps.extract_version.outputs.version }}-,suffix=-${{ matrix.platform }}
+
+    - name: Build and Push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        platforms: ${{ matrix.platform }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
