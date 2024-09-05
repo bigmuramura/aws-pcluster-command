@@ -2,12 +2,6 @@ name: Docker Build and Push
 
 on:
   push:
-    branches-ignore:
-      - main
-  pull_request:
-    types: [closed]
-    branches:
-      - main
 
 env:
   AWS_REGION: ap-northeast-1
@@ -25,7 +19,7 @@ jobs:
       matrix:
         platform:
           - linux/amd64
-          - linux/arm64
+          # - linux/arm64
 
     steps:
     - name: Checkout code
@@ -55,13 +49,19 @@ jobs:
           echo "REPOSITORY=${{ env.DEV_REPOSITORY }}" >> $GITHUB_ENV
         fi
 
+    - name: Extract ParallelCluster version
+      id: extract_version
+      run: |
+        PARALLELCLUSTER_VERSION=$(grep 'ARG PARALLELCLUSTER_VERSION=' Dockerfile | cut -d'=' -f2)
+        echo "version=${PARALLELCLUSTER_VERSION}" >> $GITHUB_OUTPUT
+
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v5
       with:
         images: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}
         tags: |
-          type=sha,format=short,prefix=,suffix=-${{ matrix.platform }}
+          type=sha,format=short,prefix=v${{ steps.extract_version.outputs.version }},suffix=-${{ matrix.platform }}
 
     - name: Build and Push
       uses: docker/build-push-action@v5
@@ -71,3 +71,5 @@ jobs:
         platforms: ${{ matrix.platform }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
