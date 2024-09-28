@@ -64,8 +64,22 @@ jobs:
         context: .
         push: true
         platforms: linux/amd64,linux/arm64
-        provenance: false
+        provenance: true  # Changed to true to generate Provenance
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Install cosign
+      uses: sigstore/cosign-installer@main
+
+    - name: Save Provenance
+      run: |
+        FULL_IMAGE_NAME=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)
+        cosign download attestation --type=provenance $FULL_IMAGE_NAME > provenance.json
+
+    - name: Upload Provenance artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: provenance
+        path: provenance.json
