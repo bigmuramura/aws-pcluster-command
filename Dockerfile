@@ -13,5 +13,5 @@ RUN apt-get update && apt-get install -y \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
 
-ARG PARALLELCLUSTER_VERSION=3.12.0
+ARG PARALLELCLUSTER_VERSION=3.13.0
 RUN pip3 install aws-parallelcluster==${PARALLELCLUSTER_VERSION}
